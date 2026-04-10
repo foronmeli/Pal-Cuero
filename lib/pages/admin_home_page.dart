@@ -20,6 +20,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
   );
   late Future<List<Producto>> _futureProductos;
   final List<Producto> _productosNuevos = [];
+  final Set<int> _productosEliminados = {};
 
   @override
   void initState() {
@@ -31,6 +32,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
     setState(() {
       _futureProductos = _service.obtenerProductos();
       _productosNuevos.clear();
+      _productosEliminados.clear();
     });
     await _futureProductos;
   }
@@ -53,6 +55,42 @@ class _AdminHomePageState extends State<AdminHomePage> {
           const SnackBar(content: Text('Producto agregado exitosamente')),
         );
       }
+    }
+  }
+
+  Future<void> _eliminarProducto(Producto producto) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar producto'),
+        content: Text('¿Seguro que deseas eliminar "${producto.nombre}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade400),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
+    await _service.eliminarProducto(producto.id);
+
+    setState(() {
+      _productosNuevos.remove(producto);
+      _productosEliminados.add(producto.id);
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Producto eliminado')),
+      );
     }
   }
 
@@ -102,8 +140,8 @@ class _AdminHomePageState extends State<AdminHomePage> {
           }
 
           final productosLista = [
-            ...snapshot.data ?? [],
-            ..._productosNuevos,
+            ...?(snapshot.data?.where((p) => !_productosEliminados.contains(p.id))),
+            ..._productosNuevos.where((p) => !_productosEliminados.contains(p.id)),
           ];
 
           if (productosLista.isEmpty) {
@@ -130,6 +168,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
                       ),
                     );
                   },
+                  onDelete: () => _eliminarProducto(producto),
                 );
               },
             ),

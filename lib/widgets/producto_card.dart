@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-
 import '../models/producto.dart';
 
 class ProductoCard extends StatelessWidget {
   final Producto producto;
   final VoidCallback onTap;
+  final VoidCallback? onDelete;
 
   const ProductoCard({
     super.key,
     required this.producto,
     required this.onTap,
+    this.onDelete,
   });
 
   @override
@@ -38,7 +39,7 @@ class ProductoCard extends StatelessWidget {
               },
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -58,6 +59,14 @@ class ProductoCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       color: Colors.brown.shade700,
                     ),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline),
+                    color: Colors.red.shade400,
+                    tooltip: 'Eliminar producto',
+                    visualDensity: VisualDensity.compact,
                   ),
                 ],
               ),

@@ -9,10 +9,7 @@ class ProductoService {
   final String baseUrl;
   final bool usarFallbackLocal;
 
-  const ProductoService({
-    required this.baseUrl,
-    this.usarFallbackLocal = true,
-  });
+  const ProductoService({required this.baseUrl, this.usarFallbackLocal = true});
 
   Future<List<Producto>> obtenerProductos() async {
     try {
@@ -26,7 +23,9 @@ class ProductoService {
 
       final dynamic decoded = jsonDecode(response.body);
 
-      final List<dynamic> lista = decoded is Map ? decoded['products'] : decoded;
+      final List<dynamic> lista = decoded is Map
+          ? decoded['products']
+          : decoded;
 
       return lista.map((item) {
         final map = item as Map<String, dynamic>;
@@ -65,6 +64,20 @@ class ProductoService {
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception('No se pudo agregar el producto');
+      }
+    } catch (e) {
+      if (!usarFallbackLocal) rethrow;
+    }
+  }
+
+  Future<void> eliminarProducto(int id) async {
+    try {
+      final response = await http
+          .delete(Uri.parse('$baseUrl/products/$id'))
+          .timeout(const Duration(seconds: 3));
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw Exception('No se pudo eliminar el producto');
       }
     } catch (e) {
       if (!usarFallbackLocal) rethrow;
