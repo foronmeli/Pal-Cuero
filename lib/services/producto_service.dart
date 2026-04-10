@@ -66,7 +66,30 @@ class ProductoService {
         throw Exception('No se pudo agregar el producto');
       }
     } catch (e) {
-      if (!usarFallbackLocal) rethrow;
+      rethrow;
+    }
+  }
+
+  Future<void> actualizarProducto(Producto producto) async {
+    try {
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/products/update/${producto.id}'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'title': producto.nombre,
+              'category': producto.categoria,
+              'description': producto.descripcionLarga,
+              'price': producto.precio,
+            }),
+          )
+          .timeout(const Duration(seconds: 3));
+
+      if (response.statusCode != 200) {
+        throw Exception('No se pudo actualizar el producto');
+      }
+    } catch (e) {
+      rethrow;
     }
   }
 

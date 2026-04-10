@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../models/producto.dart';
 
 class AgregarProductoPage extends StatefulWidget {
-  const AgregarProductoPage({super.key});
+  final String pageName;
+  final Producto? productoExistente;
+  const AgregarProductoPage({super.key, required this.pageName, this.productoExistente});
 
   @override
   State<AgregarProductoPage> createState() => _AgregarProductoPageState();
@@ -11,6 +13,9 @@ class AgregarProductoPage extends StatefulWidget {
 
 class _AgregarProductoPageState extends State<AgregarProductoPage> {
   final _formKey = GlobalKey<FormState>();
+
+  String get _pageName => widget.pageName;
+  bool get _esEdicion => widget.productoExistente != null;
 
   final _nombreController = TextEditingController();
   final _descripcionCortaController = TextEditingController();
@@ -20,6 +25,23 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
   String _categoriaSeleccionada = 'Carteras';
 
   final List<String> _categorias = ['Carteras', 'Correas'];
+
+  @override
+  void initState() {
+    super.initState();
+
+    final producto = widget.productoExistente;
+    if (producto == null) return;
+
+    _nombreController.text = producto.nombre;
+    _descripcionCortaController.text = producto.descripcionCorta;
+    _descripcionLargaController.text = producto.descripcionLarga;
+    _precioController.text = producto.precio.toStringAsFixed(0);
+
+    if (_categorias.contains(producto.categoria)) {
+      _categoriaSeleccionada = producto.categoria;
+    }
+  }
 
   @override
   void dispose() {
@@ -34,13 +56,13 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
     if (!_formKey.currentState!.validate()) return;
 
     final nuevo = Producto(
-      id: 0,
+      id: widget.productoExistente?.id ?? 0,
       nombre: _nombreController.text.trim(),
       categoria: _categoriaSeleccionada,
       descripcionCorta: _descripcionCortaController.text.trim(),
       descripcionLarga: _descripcionLargaController.text.trim(),
       precio: double.parse(_precioController.text.trim()),
-      imagen: 'assets/producto1.jpg',
+      imagen: widget.productoExistente?.imagen ?? 'assets/producto1.jpg',
     );
 
     Navigator.pop(context, nuevo);
@@ -50,8 +72,8 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Agregar Producto'),
-        backgroundColor: Colors.brown.shade700,
+        title: Text(_pageName),
+        backgroundColor: const Color.fromARGB(255, 148, 204, 16),
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -152,11 +174,11 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
               FilledButton(
                 onPressed: _guardar,
                 style: FilledButton.styleFrom(
-                  backgroundColor: Colors.brown.shade700,
+                  backgroundColor: const Color.fromARGB(255, 148, 204, 16),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: const Text(
-                  'Guardar producto',
+                child: Text(
+                  _esEdicion ? 'Actualizar producto' : 'Guardar producto',
                   style: TextStyle(fontSize: 16),
                 ),
               ),

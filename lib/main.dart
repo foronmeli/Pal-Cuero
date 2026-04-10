@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: "Pal' Cuero",
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.brown),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 146, 204, 52)),
         useMaterial3: true,
       ),
       home: const AdminHomePage(),

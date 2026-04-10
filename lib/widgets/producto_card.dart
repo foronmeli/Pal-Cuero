@@ -18,7 +18,8 @@ class ProductoCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
+      child:
+      InkWell(
         onTap: onTap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -33,7 +34,7 @@ class ProductoCard extends StatelessWidget {
                   height: 180,
                   width: double.infinity,
                   alignment: Alignment.center,
-                  color: Colors.brown.shade100,
+                  color: const Color.fromARGB(255, 180, 176, 174),
                   child: const Icon(Icons.image_not_supported, size: 40),
                 );
               },
@@ -57,7 +58,7 @@ class ProductoCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.brown.shade700,
+                      color: const Color.fromARGB(255, 148, 204, 16),
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -76,7 +77,7 @@ class ProductoCard extends StatelessWidget {
               child: Text(
                 producto.categoria,
                 style: TextStyle(
-                  color: Colors.brown.shade600,
+                  color: const Color.fromARGB(255, 148, 204, 16),
                   fontWeight: FontWeight.w600,
                 ),
               ),

@@ -21,6 +21,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
   late Future<List<Producto>> _futureProductos;
   final List<Producto> _productosNuevos = [];
   final Set<int> _productosEliminados = {};
+  final Map<int, Producto> _productosActualizados = {};
 
   @override
   void initState() {
@@ -33,6 +34,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
       _futureProductos = _service.obtenerProductos();
       _productosNuevos.clear();
       _productosEliminados.clear();
+      _productosActualizados.clear();
     });
     await _futureProductos;
   }
@@ -40,19 +42,70 @@ class _AdminHomePageState extends State<AdminHomePage> {
   Future<void> _irAgregarProducto() async {
     final nuevo = await Navigator.push<Producto>(
       context,
-      MaterialPageRoute(builder: (_) => const AgregarProductoPage()),
+      MaterialPageRoute(builder: (_) => const AgregarProductoPage(pageName: 'Agregar Producto')),
     );
 
     if (nuevo != null) {
-      await _service.agregarProducto(nuevo);
+      try {
+        await _service.agregarProducto(nuevo);
+
+        setState(() {
+          _productosNuevos.add(nuevo);
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Producto agregado exitosamente')),
+          );
+        }
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo agregar el producto en el servidor'),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _irDetalleProducto(Producto producto) async {
+    final productoEditado = await Navigator.push<Producto>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProductoDetailPage(producto: producto),
+      ),
+    );
+
+    if (productoEditado == null) return;
+
+    try {
+      await _service.actualizarProducto(productoEditado);
 
       setState(() {
-        _productosNuevos.add(nuevo);
+        final indexNuevo = _productosNuevos.indexWhere(
+          (item) => item.id == productoEditado.id,
+        );
+
+        if (indexNuevo != -1) {
+          _productosNuevos[indexNuevo] = productoEditado;
+        } else {
+          _productosActualizados[productoEditado.id] = productoEditado;
+        }
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Producto agregado exitosamente')),
+          const SnackBar(content: Text('Producto actualizado exitosamente')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo actualizar el producto en el servidor'),
+          ),
         );
       }
     }
@@ -95,93 +148,141 @@ class _AdminHomePageState extends State<AdminHomePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Pal' Cuero — Admin"),
-        backgroundColor: Colors.brown.shade700,
-        foregroundColor: Colors.white,
-      ),
-      body: FutureBuilder<List<Producto>>(
-        future: _futureProductos,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline, size: 48),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Ocurrió un error al cargar los productos.',
-                      textAlign: TextAlign.center,
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: Column(
+      children: [
+        
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 148, 204, 16),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Bienvenido Administrador',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
                     ),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: () {
-                        setState(() {
-                          _futureProductos = _service.obtenerProductos();
-                        });
-                      },
-                      child: const Text('Reintentar'),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Administra tus productos de manera eficiente',
+                    style: TextStyle(
+                      color: Color(0xCCFFFFFF),
+                      fontSize: 12,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            );
-          }
+              Icon(
+                Icons.local_offer_outlined,
+                color: Colors.white70,
+                size: 32,
+              ),
+            ],
+          ),
+        ),
 
-          final productosLista = [
-            ...?(snapshot.data?.where((p) => !_productosEliminados.contains(p.id))),
-            ..._productosNuevos.where((p) => !_productosEliminados.contains(p.id)),
-          ];
+       
+        Expanded(
+          child: FutureBuilder<List<Producto>>(
+            future: _futureProductos,
+            builder: (context, snapshot) {
+              
 
-          if (productosLista.isEmpty) {
-            return const Center(
-              child: Text('No hay productos registrados.'),
-            );
-          }
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
 
-          return RefreshIndicator(
-            onRefresh: _recargarProductos,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: productosLista.length,
-              itemBuilder: (context, index) {
-                final producto = productosLista[index];
 
-                return ProductoCard(
-                  producto: producto,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ProductoDetailPage(producto: producto),
-                      ),
+              if (snapshot.hasError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Ocurrió un error al cargar los productos.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton(
+                          onPressed: () {
+                            setState(() {
+                              _futureProductos =
+                                  _service.obtenerProductos();
+                            });
+                          },
+                          child: const Text('Reintentar'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              
+              final productosLista = [
+                ...(snapshot.data ?? [])
+                    .where((p) => !_productosEliminados.contains(p.id))
+                    .map((p) => _productosActualizados[p.id] ?? p),
+                ..._productosNuevos
+                    .where((p) => !_productosEliminados.contains(p.id)),
+              ];
+
+              
+              if (productosLista.isEmpty) {
+                return const Center(
+                  child: Text('No hay productos registrados.'),
+                );
+              }
+
+             
+              return RefreshIndicator(
+                onRefresh: _recargarProductos,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: productosLista.length,
+                  itemBuilder: (context, index) {
+                    final producto = productosLista[index];
+
+                    return ProductoCard(
+                      producto: producto,
+                      onTap: () => _irDetalleProducto(producto),
+                      onDelete: () => _eliminarProducto(producto),
                     );
                   },
-                  onDelete: () => _eliminarProducto(producto),
-                );
-              },
-            ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _irAgregarProducto,
-        backgroundColor: Colors.brown.shade700,
-        foregroundColor: Colors.white,
-        tooltip: 'Agregar producto',
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+
+   
+    floatingActionButton: FloatingActionButton(
+      onPressed: _irAgregarProducto,
+      backgroundColor: Colors.brown.shade700,
+      foregroundColor: Colors.white,
+      tooltip: 'Agregar producto',
+      child: const Icon(Icons.add),
+    ),
+  );
+}
 }

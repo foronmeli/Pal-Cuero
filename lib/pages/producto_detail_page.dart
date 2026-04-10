@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pal_cuero/pages/agregar_producto_page.dart';
 
 import '../models/producto.dart';
 
@@ -15,7 +16,7 @@ class ProductoDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(producto.nombre),
-        backgroundColor: Colors.brown.shade700,
+        backgroundColor: const Color.fromARGB(255, 148, 204, 16),
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -32,11 +33,48 @@ class ProductoDetailPage extends StatelessWidget {
                   width: double.infinity,
                   height: 240,
                   alignment: Alignment.center,
-                  color: Colors.brown.shade100,
+                  color: const Color.fromARGB(255, 205, 206, 204),
                   child: const Icon(Icons.image_not_supported, size: 48),
                 );
               },
             ),
+            SizedBox(height: 16),
+            Padding(
+              padding:  const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 148, 204, 16),
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () async {
+                      final productoEditado = await Navigator.push<Producto>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AgregarProductoPage(
+                            pageName: 'Editar Producto',
+                            productoExistente: producto,
+                          ),
+                        ),
+                      );
+
+                      if (productoEditado != null && context.mounted) {
+                        Navigator.pop(context, productoEditado);
+                      }
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.edit, size: 20),
+                        Text('Editar'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
@@ -52,7 +90,7 @@ class ProductoDetailPage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.brown.shade700,
+                      color: const Color.fromARGB(255, 148, 204, 16),
                     ),
                   ),
                 ],
@@ -63,7 +101,7 @@ class ProductoDetailPage extends StatelessWidget {
               child: Chip(
                 label: Text(producto.categoria),
                 backgroundColor: Colors.brown.shade50,
-                labelStyle: TextStyle(color: Colors.brown.shade700),
+                labelStyle: TextStyle(color: const Color.fromARGB(255, 51, 54, 47)),
               ),
             ),
             Padding(
