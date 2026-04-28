@@ -6,6 +6,7 @@ class Producto {
   final String descripcionLarga;
   final double precio;
   final String imagen;
+  final bool pendingSync;
 
   const Producto({
     required this.id,
@@ -15,31 +16,65 @@ class Producto {
     required this.descripcionLarga,
     required this.precio,
     required this.imagen,
+    required this.pendingSync,
   });
 
-  factory Producto.fromJson(Map<String, dynamic> json) {
+  Producto copyWith({
+    int? id,
+    String? nombre,
+    String? categoria,
+    String? descripcionCorta,
+    String? descripcionLarga,
+    double? precio,
+    String? imagen,
+    bool? pendingSync,
+  }) {
     return Producto(
-      id: json['id'] as int,
-      nombre: (json['nombre'] ?? '') as String,
-      categoria: (json['categoria'] ?? '') as String,
-      descripcionCorta:
-          (json['descripcion_corta'] ?? json['descripcionCorta'] ?? '') as String,
-      descripcionLarga:
-          (json['descripcion_larga'] ?? json['descripcionLarga'] ?? '') as String,
-      precio: (json['precio'] as num).toDouble(),
-      imagen: (json['imagen'] ?? '') as String,
+      id: id ?? this.id,
+      nombre: nombre ?? this.nombre,
+      categoria: categoria ?? this.categoria,
+      descripcionCorta: descripcionCorta ?? this.descripcionCorta,
+      descripcionLarga: descripcionLarga ?? this.descripcionLarga,
+      precio: precio ?? this.precio,
+      imagen: imagen ?? this.imagen,
+      pendingSync: pendingSync ?? this.pendingSync,
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toFirestore() {
     return {
       'id': id,
       'nombre': nombre,
       'categoria': categoria,
-      'descripcion_corta': descripcionCorta,
-      'descripcion_larga': descripcionLarga,
+      'descripcionCorta': descripcionCorta,
+      'descripcionLarga': descripcionLarga,
       'precio': precio,
       'imagen': imagen,
+      'pendingSync': pendingSync,
     };
+  }
+
+  factory Producto.fromFirestore(
+    Map<String, dynamic> data, {
+    required String fallbackId,
+    bool? pendingSyncOverride,
+  }) {
+    final rawId = data['id'];
+    final resolvedId = rawId is int
+        ? rawId
+        : int.tryParse(rawId?.toString() ?? '') ??
+            int.tryParse(fallbackId) ??
+            DateTime.now().millisecondsSinceEpoch;
+
+    return Producto(
+      id: resolvedId,
+      nombre: data['nombre'] ?? '',
+      categoria: data['categoria'] ?? '',
+      descripcionCorta: data['descripcionCorta'] ?? '',
+      descripcionLarga: data['descripcionLarga'] ?? '',
+      precio: (data['precio'] as num?)?.toDouble() ?? 0.0,
+      imagen: data['imagen'] ?? '',
+      pendingSync: pendingSyncOverride ?? (data['pendingSync'] ?? false),
+    );
   }
 }

@@ -1,86 +1,93 @@
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
-import 'package:http/http.dart' as http;
-
-import '../data/productos_data.dart';
 import '../models/producto.dart';
 
 class ProductoService {
-  final String baseUrl;
-  final bool usarFallbackLocal;
+  static const String collectionName = 'productos';
 
-  const ProductoService({required this.baseUrl, this.usarFallbackLocal = true});
+  ProductoService({FirebaseFirestore? firestore})
+      : _productsRef = (firestore ?? FirebaseFirestore.instance)
+            .collection(collectionName);
+
+  final CollectionReference<Map<String, dynamic>> _productsRef;
 
   Future<List<Producto>> obtenerProductos() async {
-    try {
-      final response = await http
-          .get(Uri.parse(baseUrl))
-          .timeout(const Duration(seconds: 3));
-
-      if (response.statusCode != 200) {
-        throw Exception('No se pudieron cargar los productos');
-      }
-
-      final dynamic decoded = jsonDecode(response.body);
-
-      final List<dynamic> lista = decoded is Map
-          ? decoded['products']
-          : decoded;
-
-      return lista.map((item) {
-        final map = item as Map<String, dynamic>;
-        return Producto(
-          id: map['id'] as int,
-          nombre: (map['title'] ?? '') as String,
-          categoria: (map['category'] ?? '') as String,
-          descripcionCorta: (map['description'] ?? '') as String,
-          descripcionLarga: (map['description'] ?? '') as String,
-          precio: (map['price'] as num).toDouble(),
-          imagen: (map['thumbnail'] ?? '') as String,
-        );
-      }).toList();
-    } catch (e) {
-      if (!usarFallbackLocal) rethrow;
-
-      await Future.delayed(const Duration(seconds: 1));
-      return productos;
-    }
+    final snapshot = await _productsRef.get();
+    return _mapSnapshot(snapshot);
   }
 
-  Future<void> agregarProducto(Producto producto) async {
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/products/add'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'title': producto.nombre,
-              'category': producto.categoria,
-              'description': producto.descripcionLarga,
-              'price': producto.precio,
-            }),
-          )
-          .timeout(const Duration(seconds: 3));
+  Stream<List<Producto>> observarProductos() {
+    return _productsRef
+        .snapshots(includeMetadataChanges: true)
+        .map(_mapSnapshot);
+  }
 
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception('No se pudo agregar el producto');
-      }
-    } catch (e) {
-      if (!usarFallbackLocal) rethrow;
+  Future<Producto> agregarProducto(Producto producto) async {
+    final docRef = _productsRef.doc(producto.id.toString());
+    final productoNormalizado = producto.copyWith(pendingSync: false);
+
+    try {
+      await docRef.set({
+        ...productoNormalizado.toFirestore(),
+        'id': productoNormalizado.id,
+        'createdAtMs': DateTime.now().millisecondsSinceEpoch,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      return productoNormalizado;
+    } on FirebaseException {
+      return productoNormalizado.copyWith(pendingSync: true);
+    } catch (_) {
+      return productoNormalizado.copyWith(pendingSync: true);
     }
   }
 
   Future<void> eliminarProducto(int id) async {
-    try {
-      final response = await http
-          .delete(Uri.parse('$baseUrl/products/$id'))
-          .timeout(const Duration(seconds: 3));
+    await _productsRef.doc(id.toString()).delete();
+  }
 
-      if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('No se pudo eliminar el producto');
-      }
-    } catch (e) {
-      if (!usarFallbackLocal) rethrow;
+  Future<Producto> actualizarProducto(Producto producto) async {
+    final docRef = _productsRef.doc(producto.id.toString());
+    final productoActualizado = producto.copyWith(pendingSync: false);
+
+    try {
+      await docRef.update(productoActualizado.toFirestore());
+      return productoActualizado;
+    } on FirebaseException {
+      return productoActualizado.copyWith(pendingSync: true);
+    } catch (_) {
+      return productoActualizado.copyWith(pendingSync: true);
     }
+  }
+
+  int generarNuevoId() {
+    return DateTime.now().millisecondsSinceEpoch;
+  }
+
+  List<Producto> _mapSnapshot(QuerySnapshot<Map<String, dynamic>> snapshot) {
+    final productos = snapshot.docs
+        .map((doc) => Producto.fromFirestore(
+              doc.data(),
+              fallbackId: doc.id,
+              pendingSyncOverride: doc.metadata.hasPendingWrites,
+            ))
+        .toList();
+
+    productos.sort((a, b) => b.id.compareTo(a.id));
+    return productos;
+  }
+
+  String describirError(Object error) {
+    if (error is FirebaseException) {
+      debugPrint(
+        'Firestore error [${error.code}] in ${error.plugin}: ${error.message}',
+      );
+      return error.message ??
+          'No se pudo completar la operacion en Firebase (${error.code}).';
+    }
+
+    debugPrint('Unexpected product service error: $error');
+    return 'Ocurrio un error inesperado.';
   }
 }

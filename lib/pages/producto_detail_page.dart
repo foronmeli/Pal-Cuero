@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/producto.dart';
+import '../widgets/producto_image.dart';
 
 class ProductoDetailPage extends StatelessWidget {
   final Producto producto;
@@ -22,20 +23,10 @@ class ProductoDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Image.asset(
-              producto.imagen,
+            ProductoImage(
+              imagePath: producto.imagen,
               width: double.infinity,
               height: 240,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: double.infinity,
-                  height: 240,
-                  alignment: Alignment.center,
-                  color: Colors.brown.shade100,
-                  child: const Icon(Icons.image_not_supported, size: 48),
-                );
-              },
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),

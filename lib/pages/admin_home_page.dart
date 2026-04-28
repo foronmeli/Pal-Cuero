@@ -14,27 +14,13 @@ class AdminHomePage extends StatefulWidget {
 }
 
 class _AdminHomePageState extends State<AdminHomePage> {
-  final ProductoService _service = const ProductoService(
-    baseUrl: 'https://dummyjson.com/c/7fae-4cd6-4863-a3a4',
-    usarFallbackLocal: true,
-  );
-  late Future<List<Producto>> _futureProductos;
-  final List<Producto> _productosNuevos = [];
-  final Set<int> _productosEliminados = {};
+  final ProductoService _service = ProductoService();
+  late final Stream<List<Producto>> _productosStream;
 
   @override
   void initState() {
     super.initState();
-    _futureProductos = _service.obtenerProductos();
-  }
-
-  Future<void> _recargarProductos() async {
-    setState(() {
-      _futureProductos = _service.obtenerProductos();
-      _productosNuevos.clear();
-      _productosEliminados.clear();
-    });
-    await _futureProductos;
+    _productosStream = _service.observarProductos();
   }
 
   Future<void> _irAgregarProducto() async {
@@ -44,17 +30,21 @@ class _AdminHomePageState extends State<AdminHomePage> {
     );
 
     if (nuevo != null) {
-      await _service.agregarProducto(nuevo);
+      try {
+        await _service.agregarProducto(nuevo);
+      } catch (error) {
+        if (!mounted) return;
 
-      setState(() {
-        _productosNuevos.add(nuevo);
-      });
-
-      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Producto agregado exitosamente')),
+          SnackBar(content: Text(_service.describirError(error))),
         );
+        return;
       }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Producto agregado exitosamente')),
+      );
     }
   }
 
@@ -80,18 +70,21 @@ class _AdminHomePageState extends State<AdminHomePage> {
 
     if (confirmar != true) return;
 
-    await _service.eliminarProducto(producto.id);
+    try {
+      await _service.eliminarProducto(producto.id);
+    } catch (error) {
+      if (!mounted) return;
 
-    setState(() {
-      _productosNuevos.remove(producto);
-      _productosEliminados.add(producto.id);
-    });
-
-    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Producto eliminado')),
+        SnackBar(content: Text(_service.describirError(error))),
       );
+      return;
     }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Producto eliminado')),
+    );
   }
 
   @override
@@ -102,8 +95,8 @@ class _AdminHomePageState extends State<AdminHomePage> {
         backgroundColor: Colors.brown.shade700,
         foregroundColor: Colors.white,
       ),
-      body: FutureBuilder<List<Producto>>(
-        future: _futureProductos,
+      body: StreamBuilder<List<Producto>>(
+        stream: _productosStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -120,17 +113,13 @@ class _AdminHomePageState extends State<AdminHomePage> {
                   children: [
                     const Icon(Icons.error_outline, size: 48),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Ocurrió un error al cargar los productos.',
+                    Text(
+                      'Ocurrió un error al cargar los productos.\n${_service.describirError(snapshot.error!)}',
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
                     FilledButton(
-                      onPressed: () {
-                        setState(() {
-                          _futureProductos = _service.obtenerProductos();
-                        });
-                      },
+                      onPressed: () => setState(() {}),
                       child: const Text('Reintentar'),
                     ),
                   ],
@@ -139,10 +128,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
             );
           }
 
-          final productosLista = [
-            ...?(snapshot.data?.where((p) => !_productosEliminados.contains(p.id))),
-            ..._productosNuevos.where((p) => !_productosEliminados.contains(p.id)),
-          ];
+          final productosLista = snapshot.data ?? [];
 
           if (productosLista.isEmpty) {
             return const Center(
@@ -151,7 +137,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
           }
 
           return RefreshIndicator(
-            onRefresh: _recargarProductos,
+            onRefresh: () async => setState(() {}),
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: productosLista.length,

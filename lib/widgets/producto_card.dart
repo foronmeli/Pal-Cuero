@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/producto.dart';
+import 'producto_image.dart';
 
 class ProductoCard extends StatelessWidget {
   final Producto producto;
@@ -23,20 +24,10 @@ class ProductoCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Image.asset(
-              producto.imagen,
+            ProductoImage(
+              imagePath: producto.imagen,
               height: 180,
               width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 180,
-                  width: double.infinity,
-                  alignment: Alignment.center,
-                  color: Colors.brown.shade100,
-                  child: const Icon(Icons.image_not_supported, size: 40),
-                );
-              },
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),

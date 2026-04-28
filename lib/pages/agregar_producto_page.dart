@@ -16,6 +16,9 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
   final _descripcionCortaController = TextEditingController();
   final _descripcionLargaController = TextEditingController();
   final _precioController = TextEditingController();
+  final _imagenController = TextEditingController(
+    text: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=1200&q=80',
+  );
 
   String _categoriaSeleccionada = 'Carteras';
 
@@ -27,6 +30,7 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
     _descripcionCortaController.dispose();
     _descripcionLargaController.dispose();
     _precioController.dispose();
+    _imagenController.dispose();
     super.dispose();
   }
 
@@ -34,13 +38,14 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
     if (!_formKey.currentState!.validate()) return;
 
     final nuevo = Producto(
-      id: 0,
+      id: DateTime.now().millisecondsSinceEpoch,
       nombre: _nombreController.text.trim(),
       categoria: _categoriaSeleccionada,
       descripcionCorta: _descripcionCortaController.text.trim(),
       descripcionLarga: _descripcionLargaController.text.trim(),
       precio: double.parse(_precioController.text.trim()),
-      imagen: 'assets/producto1.jpg',
+      imagen: _imagenController.text.trim(),
+      pendingSync: false,
     );
 
     Navigator.pop(context, nuevo);
@@ -77,7 +82,7 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
               const SizedBox(height: 16),
 
               DropdownButtonFormField<String>(
-                value: _categoriaSeleccionada,
+                initialValue: _categoriaSeleccionada,
                 decoration: const InputDecoration(
                   labelText: 'Categoría',
                   border: OutlineInputBorder(),
@@ -148,7 +153,21 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
               ),
               const SizedBox(height: 24),
 
-              // Botón guardar
+              TextFormField(
+                controller: _imagenController,
+                decoration: const InputDecoration(
+                  labelText: 'URL de la imagen',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'La imagen es obligatoria';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+
               FilledButton(
                 onPressed: _guardar,
                 style: FilledButton.styleFrom(
