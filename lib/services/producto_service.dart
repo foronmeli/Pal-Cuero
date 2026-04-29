@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../models/producto.dart';
 
 class ProductoService {
-  static const String collectionName = 'productos';
+  static const String collectionName = 'stephano';
 
   ProductoService({FirebaseFirestore? firestore})
       : _productsRef = (firestore ?? FirebaseFirestore.instance)
